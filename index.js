@@ -36,11 +36,16 @@ async function run() {
 
 
     // course related api 
-
     app.get('/courses', async(req, res) => {
         const cursor = courseCollection.find();
         const result = await cursor.toArray()
         res.send(result)
+    })
+
+    app.get('/top-courses', async(req,res) => {
+      const cursor = courseCollection.find().sort({ratings: -1}).limit(3);
+      const result = await cursor.toArray();
+      res.send(result)
     })
 
 
@@ -49,6 +54,7 @@ async function run() {
         const result = await courseCollection.insertOne(courseInfo);
         res.send(result);
     })
+
 
 
 
