@@ -2,12 +2,49 @@ require('dotenv').config()
 const express = require('express');
 const cors = require('cors')
 const app = express()
+const admin = require("firebase-admin");
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 3000;
 
 // middleware
 app.use(express.json())
 app.use(cors())
+
+
+
+const serviceAccount = require("./firebase-adminsdk.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+
+const logger = (req, res, next) => {
+  console.log("Hi i'm logger");
+  next();
+}
+
+const verifyFirebaseToken = async (req, res, next) =>{
+  console.log('firebase token', req.headers.authorization);
+  if(!req.headers.authorization){
+    return res.status(401).send({message: 'Unauthorized Access'})
+  }
+
+  const token = req.headers.authorization.split(' ')[1];
+  if(!token){
+    return res.status(401).send({message: "Unauthorized Access"})
+  }
+
+  try{
+    const userInfo = await admin.auth().verifyIdToken(token);
+    console.log(userInfo)
+    next()
+  }
+  catch{
+        return res.status(401).send({message: "Unauthorized Access"})
+        console.log("Not found, you are in catch")
+  }
+}
 
 const uri = `mongodb+srv://${process.env.DB_USER_NAME}:${process.env.DB_PASSWORD}@cluster0.egyokrx.mongodb.net/?appName=Cluster0`;
 
@@ -105,7 +142,7 @@ async function run() {
       res.send(result);
     })
     
-    app.get('/my-enrolled-course', async (req, res) => {
+    app.get('/my-enrolled-course', logger, verifyFirebaseToken, async (req, res) => {
       const email = req.query.email;
 
       if (!email) {
