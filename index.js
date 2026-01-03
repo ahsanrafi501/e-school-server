@@ -38,6 +38,7 @@ const verifyFirebaseToken = async (req, res, next) =>{
   try{
     const userInfo = await admin.auth().verifyIdToken(token);
     console.log(userInfo)
+    req.token_email = userInfo.email;
     next()
   }
   catch{
@@ -81,7 +82,7 @@ async function run() {
 
 
     // my Course
-    app.get('/my-courses', async (req, res) => {
+    app.get('/my-courses', verifyFirebaseToken, async (req, res) => {
       const email = req.query.email;
       const result = await courseCollection.find({ email }).toArray();
       res.send(result);
@@ -147,6 +148,12 @@ async function run() {
 
       if (!email) {
         return res.send([]);
+      }
+
+      if(email){
+        if(email !== req.token_email){
+          return res.status(403).send({message: forbidden})
+        }
       }
 
       const result = await enrolledCourseCollection
